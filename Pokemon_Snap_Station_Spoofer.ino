@@ -206,19 +206,16 @@ void loop() {
         resetLoop = 0;
        }
     }
-      
-    }
-  // 60         = ACK
-  //   02       = LN
-  //     17     = COMMAND (define card type and presence detection)
-  //       07   = T (Card type - GPM103)
-  //         72 = LRC
-  else if(incomingStr == "6002170772")   // message end/heartbeat was received
-  {
-    // 60       = ACK
-    //   01     = LN
-    //     00   = S (Sequence number)
-    //       61 = LRC
-    Serial.write("60010061"); // write ack message
+    // 60         = ACK
+    //   02       = LN
+    //     17     = COMMAND (define card type and presence detection)
+    //       07   = T (Card type - GPM103)
+    //         72 = LRC
+    } else if(incomingStr == "6002170772") { // message end/heartbeat was received
+      // 60       = ACK
+      //   01     = LN
+      //     00   = S (Sequence number)
+      //       61 = LRC
+      Serial.write("60010061"); // write ack message
   }
 }
