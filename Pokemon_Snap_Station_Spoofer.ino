@@ -43,7 +43,8 @@ void loop() {
   // http://support.gemalto.com/fileadmin/user_upload/user_guide/GemPC410/GemCore_v1.21_Reference_Manual.pdf
   
   // The cards which store the "credits" the machine uses are simple GPM103 memory cards which contain a counter for
-  // the number of available credits.  There's no complex authentication or validation of the card itself.
+  // the number of available credits.  There's no complex authentication or validation of the card itself, as the cards
+  // are "read only" pre-paid cards and only allow for debiting credits.
   
   // Messages follow a simple format:
   // 60         = ACK (ACK to previous message)
@@ -60,7 +61,13 @@ void loop() {
     // NOTE: The blank space after each string is ETX, *not* a space.
     // 60                   = ACK
     //   07                 = LN
-    //     00060700000000   = ????
+    //     00               = S  (Sequence number)
+    //       06             = STAT (Card #0, 5V, Card powered, Card inserted, T=0)
+    //         07           = TYPE (Card type - GPM103)
+    //           00         = CNF1
+    //             00       = CNF2
+    //               00     = CNF3
+    //                 00   = CNF4
     //                   66 = LRC
     Serial.write("60070006070000000066"); // card is inserted
     
@@ -82,8 +89,8 @@ void loop() {
     //     13             = COMMAND (Read data from card)
     //       00           = CLA (Class byte)
     //         B0         = INS (Instruction - Read bytes)
-    //           00       = A1 (0x00)
-    //             02     = A2 (Start address)
+    //           00       = A1 (Address MSB)
+    //             02     = A2 (Address LSB
     //               06   = LN (Return LN bytes)
     //                 C1 = LRC
     Serial.readBytesUntil(0x03,incoming,40); // wait for 60061300B0000206C1
@@ -101,8 +108,8 @@ void loop() {
     //     13             = COMMAND (Read data from card)
     //       00           = CLA
     //         B2         = INS (Instruction - Read counter value from GPM103 card)
-    //           05       = A1 (Value MSB)
-    //             08     = A2 (Value LSB)
+    //           05       = A1 (Record number)
+    //             08     = A2 (Reference control)
     //               02   = LN (Return LN bytes of counter, must always be 0x02)
     //                 C8 = LRC
     Serial.readBytesUntil(0x03,incoming,40); // wait for 60061300B2050802C8
@@ -131,8 +138,8 @@ void loop() {
     //     13             = COMMAND (Read data from card)
     //       00           = CLA
     //         B2         = INS (Instruction - Read counter value of GPM103 card)
-    //           05       = A1 (Value MSB)
-    //             08     = A2 (Value LSB)
+    //           05       = A1 (Record number)
+    //             08     = A2 (Reference control)
     //               02   = LN (Return LN bytes of counter, must always be 0x02)
     //                 C8 = LRC
     Serial.readBytesUntil(0x03,incoming,40); // wait for 60061300B2050802C8
@@ -167,8 +174,8 @@ void loop() {
     //     14                    = COMMAND (Write data to card)
     //       00                  = CLA
     //         D2                = INS (Instruction - Write counter value of GPM103 card)
-    //           05              = A1 (Value MSB)
-    //             08            = A2 (Value LSB)
+    //           05              = A1 (Record number)
+    //             08            = A2 (Reference control)
     //               02          = LN (Set LN bytes of counter, must always be 0x02)
     //                 0000      = <data> (Counter vaue - 0x0000 credits)   
     //                     A1    = LRC
@@ -206,19 +213,16 @@ void loop() {
         resetLoop = 0;
        }
     }
-      
-    }
-  // 60         = ACK
-  //   02       = LN
-  //     17     = COMMAND (define card type and presence detection)
-  //       07   = T (Card type - GPM103)
-  //         72 = LRC
-  else if(incomingStr == "6002170772")   // message end/heartbeat was received
-  {
-    // 60       = ACK
-    //   01     = LN
-    //     00   = S (Sequence number)
-    //       61 = LRC
-    Serial.write("60010061"); // write ack message
+    // 60         = ACK
+    //   02       = LN
+    //     17     = COMMAND (define card type and presence detection)
+    //       07   = T (Card type - GPM103)
+    //         72 = LRC
+    } else if(incomingStr == "6002170772") { // message end/heartbeat was received
+      // 60       = ACK
+      //   01     = LN
+      //     00   = S (Sequence number)
+      //       61 = LRC
+      Serial.write("60010061"); // write ack message
   }
 }
